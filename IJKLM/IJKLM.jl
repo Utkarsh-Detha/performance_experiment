@@ -2,7 +2,7 @@ using JuMP
 using JSON
 using DataFrames
 using BenchmarkTools
-using Gurobi
+using MosekTools
 
 function read_tuple_list(filename)
     return [tuple(x...) for x in JSON.parsefile(filename)]
@@ -42,7 +42,7 @@ function jump(I, IJK, JKL, KLM, solve)
     )
 
     if solve == "True"
-        set_optimizer(model, Gurobi.Optimizer)
+        set_optimizer(model, Mosek.Optimizer)
         set_time_limit_sec(model, 0)
         set_silent(model)
         optimize!(model)
@@ -51,7 +51,7 @@ end
 
 function fast_jump(I, IJK, JKL, KLM, solve)
     model = if solve == "True"
-        direct_model(Gurobi.Optimizer())
+        direct_model(Mosek.Optimizer())
     else
         Model()
     end

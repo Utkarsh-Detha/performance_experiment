@@ -64,8 +64,9 @@ def pyomo(I, IJK, JKL, KLM, solve):
     model.ei = pyo.Constraint(model.I, rule=ei_rule)
 
     if solve:
-        opt = pyo.SolverFactory("gurobi")
-        opt.solve(model, options={"TimeLimit": 0}, load_solutions=False)
+        opt = pyo.SolverFactory("mosek")
+        opt.solve(model, options = {'dparam.optimizer_max_time':  0.0, 
+                                   'iparam.log':   0}, load_solutions=False)
 
 
 def ei_rule(model, i):
@@ -142,8 +143,9 @@ def fast_pyomo(I, IJK, JKL, KLM, solve):
     model.ei = pyo.Constraint(model.I, rule=fast_ei_rule)
 
     if solve:
-        opt = pyo.SolverFactory("gurobi")
-        opt.solve(model, options={"TimeLimit": 0}, load_solutions=False)
+        opt = pyo.SolverFactory("mosek")
+        opt.solve(model, options = {'dparam.optimizer_max_time':  0.0, 
+                                   'iparam.log':   0}, load_solutions=False)
 
 
 def fast_ei_rule(model, i):
@@ -213,5 +215,6 @@ def cartesian_pyomo(I, J, K, L, M, IJK, JKL, KLM, solve):
     model.ei = pyo.Constraint(model.I, rule=ei_rule)
 
     if solve:
-        opt = pyo.SolverFactory("gurobi")
-        opt.solve(model, options={"TimeLimit": 0}, load_solutions=False)
+        opt = pyo.SolverFactory("mosek")
+        opt.solve(model, options = {'dparam.optimizer_max_time':  0.0, 
+                                   'iparam.log':   0}, load_solutions=False)
