@@ -64,3 +64,40 @@ def fixed_data_to_dicts(JKL, KLM):
     for k, l, m in KLM:
         KLM_dict[k, l].append(m)
     return JKL_dict, KLM_dict
+
+def str_to_num_idx(str_idx):
+    i,j,k = str_idx
+    i = int(''.join(c for c in i if c.isdigit()))
+    j = int(''.join(c for c in j if c.isdigit()))
+    k = int(''.join(c for c in k if c.isdigit()))   
+    return i, j, k 
+
+def variable_data_to_num_tuple(IJK):
+    ijk = []
+    for x in IJK.loc[IJK["value"] == 1][["i", "j", "k"]].to_dict("split")["data"]:
+        ijk.append(tuple(str_to_num_idx(x)))
+    return ijk    
+
+def fixed_data_to_num_dicts(JKL,KLM):
+    JKL_ndict = defaultdict(list)
+    KLM_ndict = defaultdict(list)
+
+    for jkl in JKL:
+        j,k,l = str_to_num_idx(jkl)
+        JKL_ndict[j,k].append(l)
+    for klm in KLM:
+        k,l,m = str_to_num_idx(klm)
+        KLM_ndict[k,l].append(m)
+    return JKL_ndict, KLM_ndict
+
+def data_to_nnz_idx(I, IJK_numidx, JKL_ndict, KLM_ndict):
+    # The indices will be converted to 0-based indexing.
+    nnz_idx = {}
+    for i in range(len(I)):
+        jklm = []
+        for _, j, k in list(filter(lambda x:x[0]==i+1, IJK_numidx)):        
+            # 0-based indexing!!
+            jklm += [(j-1, k-1, l-1, KLM_ndict[(k, l)][0]-1) for l in JKL_ndict[(j,k)] if (k,l) in KLM_ndict]
+        if len(jklm)>0:
+            nnz_idx[i] = jklm
+    return nnz_idx

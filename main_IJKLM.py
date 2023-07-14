@@ -45,9 +45,9 @@ def run_experiment(
     jkl_tuple, klm_tuple = data.fixed_data_to_tuples(JKL, KLM)
     jkl_dict, klm_dict = data.fixed_data_to_dicts(jkl_tuple, klm_tuple)
 
-    print(KLM)
-    print(JKL)
 
+    jkl_ndict, klm_ndict = data.fixed_data_to_num_dicts(jkl_tuple, klm_tuple)
+    
     # save data to json for JuMP
     save_to_json(N, "N", "", "IJKLM")
     save_to_json(jkl_tuple, "JKL", "", "IJKLM")
@@ -57,7 +57,8 @@ def run_experiment(
     for n in N:
         # create variable data and convert to tuples
         I, IJK = data.create_variable_data(n=n, j=J, k=K)
-        print(IJK)
+        ijk_num_tuple = data.variable_data_to_num_tuple(IJK)
+        nnz_idx = data.data_to_nnz_idx(I, ijk_num_tuple, jkl_ndict, klm_ndict)
         ijk_tuple = data.variable_data_to_tuples(IJK)
 
         # save data to json for JuMP
@@ -120,9 +121,7 @@ def run_experiment(
                 K=K, 
                 L=L, 
                 M=M,
-                IJK=ijk_tuple,
-                JKL=jkl_dict,
-                KLM=klm_dict,
+                nnz_idx=nnz_idx,
                 solve=solve,
                 repeats=repeats,
                 number=number,
@@ -155,8 +154,8 @@ def run_experiment(
 
 
 if __name__ == "__main__":
-    CI = 50
-    CJ = 3
+    CI = 400000
+    CJ = 20
 
     create_directories("IJKLM")
     solve = True

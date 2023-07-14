@@ -2,6 +2,7 @@ import timeit
 import logging
 import pandas as pd
 import numpy as np
+from collections import defaultdict
 
 import sys
 
@@ -9,22 +10,20 @@ import mosek.fusion as msk
 
 ########## MOSEK Fusion ##########
 
-def run_mosek_fusion(I, J, K, L, M, IJK, JKL, KLM, solve, repeats, number):
+def run_mosek_fusion(I, J, K, L, M, nnz_idx, solve, repeats, number):
+    total_len = 0
+    for i in nnz_idx.keys():
+        total_len+=len(nnz_idx[i])
+
     setup = {
-        "I": I,
-        "J": J,
-        "K": K,
-        "L": L,
-        "M": M,
-        "IJK": IJK,
-        "JKL": JKL,
-        "KLM": KLM,
+        "total_len":total_len,
+        "nnz_idx":nnz_idx,
         "solve": solve,
         "model_function": mosek_fusion,
     }
 
     r = timeit.repeat(
-        "model_function(I, J, K, L, M, IJK, JKL, KLM, solve)",
+        "model_function(total_len, nnz_idx, solve)",
         repeat=repeats,
         number=number,
         globals=setup,
@@ -34,7 +33,7 @@ def run_mosek_fusion(I, J, K, L, M, IJK, JKL, KLM, solve, repeats, number):
     result = pd.DataFrame(
         {
             "I": [len(I)],
-            "Language": ["Pyomo"],
+            "Language": ["MOSEK Fusion"],
             "MinTime": [np.min(r)],
             "MeanTime": [np.mean(r)],
             "MedianTime": [np.median(r)],
@@ -42,20 +41,25 @@ def run_mosek_fusion(I, J, K, L, M, IJK, JKL, KLM, solve, repeats, number):
     )
     return result
 
-def mosek_fusion(I, J, K, L, M, IJK, JKL, KLM, solve):
+def mosek_fusion(total_len, nnz_idx, solve):
     model = msk.Model()
 
     model.objective(msk.ObjectiveSense.Minimize, 1.0)
 
-    x = model.variable([len(I), len(J), len(K), len(L), len(M)], msk.Domain.greaterThan(0.0))
+    x = model.variable(total_len, msk.Domain.greaterThan(0.0))
 
-    sys.stdout.write(str([([([i, j, k, l, m]) for (_,l) in JKL[j] for (_,m) in KLM[k]]) for (i,j,k) in IJK]))
+    c_e = []
+    count = 0
+    for i in nnz_idx.keys():
+        size = len(nnz_idx[i])
+        c_e.append(msk.Expr.sum(x.slice(count, count+size)))
+        count += size
+    c_e = msk.Expr.vstack(c_e)
 
-#    con_expr = msk.Expr.sum( [x.pick([[i, j, k, l, m] for (_,l) in JKL[j] for (_,m) in KLM[k]]) for (i,j,k) in IJK], 1)
-
-#    model.constraint(con_expr, msk.Domain.greaterThan(0.0))
+    model.constraint(c_e, msk.Domain.greaterThan(0.0))
 
     if solve:
         model.setSolverParam("optimizerMaxTime", 0.0)
         model.setSolverParam("log", 0)
         model.solve()
+        
